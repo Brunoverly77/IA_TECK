@@ -23,20 +23,25 @@ Após preencher o formulário, o usuário recebe o link da sua planilha personal
 🛠️ Tecnologias utilizadas
 React.js • Vite • JavaScript • N8N • Google Sheets API • Google Drive API • Gmail API • REST API • Webhooks • Git • GitHub • Vercel • Render • Claude
 
+## Instalação local
 
 ```bash
 # Clone o repositório
 git clone https://github.com/Brunoverly77/IA_TECK.git
 
+```bash
 # Entre na pasta
 cd IA_TECK
 
+```bash
 # Instale as dependências
 npm install
 
+```bash
 # Crie o arquivo .env
 VITE_WEBHOOK_URL=sua_url_do_webhook
 
+```bash
 # Rode o projeto
 npm run dev
 ```
