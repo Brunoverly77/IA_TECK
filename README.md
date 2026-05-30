@@ -1,16 +1,24 @@
-# React + Vite
+🚀 Projeto IA TECK —
+ Automação Financeira com React + N8N + Google Workspace
+Desenvolvi do zero uma aplicação web completa de gestão financeira automatizada, integrando frontend moderno com um fluxo de automação inteligente.
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+🖥️ Frontend (React + Vite)
+Interface responsiva construída com React.js, utilizando hooks (useState), componentização e consumo de API via Fetch. O formulário coleta dados financeiros como nome, datas, contas e valores formatados em BRL, com validação de email @gmail.com e feedback visual em tempo real.
 
-Currently, two official plugins are available:
+⚙️ Automação (N8N Cloud)
+Fluxo de trabalho no N8N com lógica condicional inteligente:
+Webhook para receber os dados do formulário
+Verificação se o usuário já existe na base de dados
+Caminho False (novo usuário): cria planilha personalizada via Google Drive API, compartilha automaticamente e registra no banco de dados
+Caminho True (usuário existente): adiciona nova linha na planilha já existente e reenvia o link por email
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+☁️ Google Workspace Integration
+Google Sheets API para criação e gerenciamento de planilhas individuais por usuário
+Google Drive API para cópia de template e compartilhamento automático
+Gmail API para envio automático de emails com link personalizado
 
-## React Compiler
+📌 Experiência do Usuário
+Após preencher o formulário, o usuário recebe o link da sua planilha personalizada pelo site e por email. Para salvar permanentemente no próprio Google Drive, basta abrir o link e clicar em "Adicionar ao Meu Drive" — a planilha passa a ser totalmente do usuário!
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
-
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+🛠️ Tecnologias utilizadas
+React.js • Vite • JavaScript • N8N • Google Sheets API • Google Drive API • Gmail API • REST API • Webhooks • Git • GitHub • Vercel • Render • Claude
