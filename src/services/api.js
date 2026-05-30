@@ -1,5 +1,5 @@
 export const enviarFormulario = async (data) => {
-  const url = "https://brunon8nv.app.n8n.cloud/webhook/formulario"
+  const url = import.meta.env.VITE_WEBHOOK_URL
   
   const response = await fetch(url, {
     method: 'POST',
