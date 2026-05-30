@@ -25,31 +25,29 @@ React.js • Vite • JavaScript • N8N • Google Sheets API • Google Drive 
 
 ## Instalação local
 
+Clone o repositório:
 ```bash
-# Clone o repositório
 git clone https://github.com/Brunoverly77/IA_TECK.git
+```
 
+Entre na pasta:
 ```bash
-# Entre na pasta
 cd IA_TECK
+```
 
+Instale as dependências:
 ```bash
-# Instale as dependências
 npm install
+```
 
+Rode o projeto:
 ```bash
-# Crie o arquivo .env
-VITE_WEBHOOK_URL=sua_url_do_webhook
-
-```bash
-# Rode o projeto
 npm run dev
 ```
 
 ## Variáveis de ambiente
 
 Crie um arquivo `.env` na raiz do projeto:
-
 ```
 VITE_WEBHOOK_URL=sua_url_do_webhook
 ```
