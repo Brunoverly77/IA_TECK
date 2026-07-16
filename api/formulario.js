@@ -5,16 +5,14 @@ const SPREADSHEET_INDICE_ID = process.env.SPREADSHEET_INDICE_ID
 const TEMPLATE_FILE_ID = process.env.TEMPLATE_FILE_ID
 
 function getAuth() {
-  const credentials = JSON.parse(
-    Buffer.from(process.env.GOOGLE_SERVICE_ACCOUNT_BASE64, 'base64').toString('utf-8')
+  const oauth2Client = new google.auth.OAuth2(
+    process.env.GOOGLE_OAUTH_CLIENT_ID,
+    process.env.GOOGLE_OAUTH_CLIENT_SECRET
   )
-  return new google.auth.GoogleAuth({
-    credentials,
-    scopes: [
-      'https://www.googleapis.com/auth/spreadsheets',
-      'https://www.googleapis.com/auth/drive'
-    ]
+  oauth2Client.setCredentials({
+    refresh_token: process.env.GOOGLE_OAUTH_REFRESH_TOKEN
   })
+  return oauth2Client
 }
 
 async function buscarPlanilhaPorEmail(sheets, gmail) {
