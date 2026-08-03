@@ -9,7 +9,7 @@ function Painel() {
   const [carregando, setCarregando] = useState(true)
   const [modalAberto, setModalAberto] = useState(false)
   const [contaEditando, setContaEditando] = useState(null)
-  const [form, setForm] = useState({ descricao: '', valor: '', data: '', vencimento: '' })
+  const [form, setForm] = useState({ descricao: '', valor: '', data: '', vencimento: '', recorrente: false })
 
   useEffect(() => {
     verificarSessaoECarregar()
@@ -37,19 +37,20 @@ function Painel() {
     setCarregando(false)
   }
 
-  const abrirModalNova = () => {
+    const abrirModalNova = () => {
     setContaEditando(null)
-    setForm({ descricao: '', valor: '', data: '', vencimento: '' })
+    setForm({ descricao: '', valor: '', data: '', vencimento: '', recorrente: false })
     setModalAberto(true)
   }
 
-  const abrirModalEditar = (conta) => {
+    const abrirModalEditar = (conta) => {
     setContaEditando(conta)
     setForm({
       descricao: conta.descricao,
       valor: conta.valor,
       data: conta.data,
-      vencimento: conta.vencimento
+      vencimento: conta.vencimento,
+      recorrente: conta.recorrente || false
     })
     setModalAberto(true)
   }
@@ -90,6 +91,35 @@ function Painel() {
     await carregarContas()
   }
 
+  const handleMarcarPaga = async (conta) => {
+  await supabase
+    .from('contas')
+    .update({ pago: true })
+    .eq('id', conta.id)
+
+  if (conta.recorrente) {
+    const proximoVencimento = new Date(conta.vencimento)
+    proximoVencimento.setMonth(proximoVencimento.getMonth() + 1)
+
+    const { data: { user } } = await supabase.auth.getUser()
+
+    await supabase.from('contas').insert({
+      descricao: conta.descricao,
+      valor: conta.valor,
+      data: new Date().toISOString().split('T')[0],
+      vencimento: proximoVencimento.toISOString().split('T')[0],
+      recorrente: true,
+      pago: false,
+      aviso_enviado: false,
+      user_id: user.id,
+      nome: '',
+      sobrenome: ''
+    })
+  }
+
+  await carregarContas()
+}
+
   const statusConta = (vencimento) => {
     const hoje = new Date()
     const dataVenc = new Date(vencimento)
@@ -110,9 +140,9 @@ function Painel() {
       </div>
 
       <div className="lista-contas">
-        {contas.length === 0 && <p className="vazio">Nenhuma conta cadastrada ainda.</p>}
+        {contas.filter(c => !c.pago).length === 0 && <p className="vazio">Nenhuma conta pendente.</p>}
 
-        {contas.map((conta) => {
+        {contas.filter(c => !c.pago).map((conta) => {
           const status = statusConta(conta.vencimento)
           return (
             <div key={conta.id} className="conta-card">
@@ -122,6 +152,7 @@ function Painel() {
               </div>
               <div className="conta-acoes">
                 <span className={`status ${status.classe}`}>{status.texto}</span>
+                <button onClick={() => handleMarcarPaga(conta)}>Marcar como paga</button>
                 <button onClick={() => abrirModalEditar(conta)}>Editar</button>
                 <button onClick={() => handleExcluir(conta.id)}>Excluir</button>
               </div>
@@ -129,6 +160,18 @@ function Painel() {
           )
         })}
       </div>
+
+      {contas.filter(c => c.pago).length > 0 && (
+        <div className="historico-pagas">
+          <h3>Contas pagas</h3>
+          {contas.filter(c => c.pago).map((conta) => (
+            <div key={conta.id} className="conta-paga">
+              <span>{conta.descricao} · R$ {conta.valor}</span>
+              <button onClick={() => handleExcluir(conta.id)}>Excluir</button>
+            </div>
+          ))}
+        </div>
+      )}
 
       {modalAberto && (
         <div className="modal-fundo" onClick={() => setModalAberto(false)}>
@@ -172,6 +215,16 @@ function Painel() {
                     required
                   />
                 </div>
+              </div>
+              <div className="campo campo-checkbox">
+                <label>
+                  <input
+                    type="checkbox"
+                    checked={form.recorrente}
+                    onChange={(e) => setForm({ ...form, recorrente: e.target.checked })}
+                  />
+                  {' '}Essa conta se repete todo mês
+                </label>
               </div>
               {erroSalvar && <p className="erro">{erroSalvar}</p>}
               <button type="submit">Salvar</button>
