@@ -4,5 +4,11 @@
       "path": "/api/verificar-vencimentos",
       "schedule": "0 12 * * *"
     }
+  ],
+  "rewrites": [
+    {
+      "source": "/((?!api/).*)",
+      "destination": "/index.html"
+    }
   ]
 }
