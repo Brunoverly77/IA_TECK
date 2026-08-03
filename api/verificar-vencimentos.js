@@ -14,9 +14,20 @@ export default async function handler(req, res) {
     return res.status(401).json({ error: 'Não autorizado' })
   }
 
-  const daqui5dias = new Date()
-  daqui5dias.setDate(daqui5dias.getDate() + 5)
-  const dataAlvo = daqui5dias.toISOString().split('T')[0]
+  const formatarDataBrasil = (data) => {
+    const formatter = new Intl.DateTimeFormat('en-CA', {
+      timeZone: 'America/Sao_Paulo',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit'
+    })
+    return formatter.format(data)
+  }
+
+  const hojeBrasil = formatarDataBrasil(new Date())
+  const [ano, mes, dia] = hojeBrasil.split('-').map(Number)
+  const daqui5dias = new Date(ano, mes - 1, dia + 5)
+  const dataAlvo = formatarDataBrasil(daqui5dias)
 
   const { data: contas, error } = await supabaseAdmin
     .from('contas')
