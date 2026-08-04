@@ -46,7 +46,7 @@ export default async function handler(req, res) {
     if (!email) continue
 
     await resend.emails.send({
-      from: 'onboarding@resend.dev',
+      from: 'IA TECK <avisos@iateck.com.br>',
       to: email,
       subject: 'Sua conta vence em 5 dias!',
       html: `Sua conta "${conta.descricao}" no valor de R$ ${conta.valor} vence em ${conta.vencimento}. Não esqueça de pagar!`
