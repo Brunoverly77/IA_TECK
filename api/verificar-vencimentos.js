@@ -57,11 +57,23 @@ export default async function handler(req, res) {
       ? 'Sua conta vence hoje!'
       : `Sua conta vence em ${diasRestantes} dia${diasRestantes > 1 ? 's' : ''}!`
 
+    const textoDias = diasRestantes === 0
+      ? 'vence <strong>hoje</strong>'
+      : `vence em <strong>${diasRestantes} dia${diasRestantes > 1 ? 's' : ''}</strong>`
+
     await resend.emails.send({
       from: 'IA TECK <avisos@iateck.com.br>',
       to: email,
       subject: assunto,
-      html: `Sua conta "${conta.descricao}" no valor de R$ ${conta.valor} vence em ${conta.vencimento}. Não esqueça de pagar!`
+      html: `
+        <div style="font-family: sans-serif; max-width: 480px; margin: 0 auto;">
+          <h2 style="color: #6c63ff;">IA TECK</h2>
+          <p>Sua conta <strong>"${conta.descricao}"</strong> ${textoDias}.</p>
+          <p style="font-size: 18px;"><strong>Valor:</strong> R$ ${conta.valor}</p>
+          <p><strong>Data de vencimento:</strong> ${conta.vencimento}</p>
+          <p style="color: #888; font-size: 13px; margin-top: 24px;">Não esqueça de marcar como paga no painel assim que quitar essa conta.</p>
+        </div>
+      `
     })
 
     await supabaseAdmin

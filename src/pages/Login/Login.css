@@ -147,6 +147,20 @@ button:disabled {
   line-height: 1.6;
 }
 
+.aviso-codigo {
+  font-size: 13px;
+  color: #666;
+  margin-bottom: 12px;
+  text-align: center;
+}
+
+.btn-voltar {
+  background: transparent !important;
+  color: #6c63ff !important;
+  margin-top: 8px;
+  font-size: 13px;
+}
+
 @media (max-width: 480px) {
   .login-container {
     padding: 24px 16px;

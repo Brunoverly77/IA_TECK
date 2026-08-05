@@ -1,33 +1,52 @@
 import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { supabase } from '../../services/supabase'
 import './Login.css'
 
 function Login() {
   const [email, setEmail] = useState('')
-  const [enviado, setEnviado] = useState(false)
+  const [codigo, setCodigo] = useState('')
+  const [etapa, setEtapa] = useState('email')
   const [loading, setLoading] = useState(false)
   const [erro, setErro] = useState('')
+  const navigate = useNavigate()
 
-  const handleSubmit = async (e) => {
+  const handleEnviarCodigo = async (e) => {
     e.preventDefault()
     setLoading(true)
     setErro('')
 
-    const { error } = await supabase.auth.signInWithOtp({
+    const { error } = await supabase.auth.signInWithOtp({ email })
+
+    setLoading(false)
+
+    if (error) {
+      setErro('Não deu pra enviar o código. Tente novamente.')
+      return
+    }
+
+    setEtapa('codigo')
+  }
+
+  const handleConfirmarCodigo = async (e) => {
+    e.preventDefault()
+    setLoading(true)
+    setErro('')
+
+    const { error } = await supabase.auth.verifyOtp({
       email,
-      options: {
-        emailRedirectTo: window.location.origin + '/painel'
-      }
+      token: codigo,
+      type: 'email'
     })
 
     setLoading(false)
 
     if (error) {
-      setErro('Não deu pra enviar o link. Tente novamente.')
+      setErro('Código incorreto ou expirado. Tente novamente.')
       return
     }
 
-    setEnviado(true)
+    navigate('/painel')
   }
 
   return (
@@ -35,12 +54,8 @@ function Login() {
       <h1>IA TECK</h1>
       <p>Entre com seu e-mail pra ver suas contas</p>
 
-      {enviado ? (
-        <div className="mensagem-sucesso">
-          Link enviado! Confira sua caixa de entrada em {email}.
-        </div>
-      ) : (
-        <form onSubmit={handleSubmit}>
+      {etapa === 'email' && (
+        <form onSubmit={handleEnviarCodigo}>
           <div className="campo">
             <label>E-mail</label>
             <input
@@ -53,7 +68,35 @@ function Login() {
           </div>
           {erro && <p className="erro">{erro}</p>}
           <button type="submit" disabled={loading}>
-            {loading ? 'Enviando...' : 'Enviar link mágico'}
+            {loading ? 'Enviando...' : 'Enviar código'}
+          </button>
+        </form>
+      )}
+
+      {etapa === 'codigo' && (
+        <form onSubmit={handleConfirmarCodigo}>
+          <p className="aviso-codigo">Enviamos um código de 6 dígitos para {email}</p>
+          <div className="campo">
+            <label>Código</label>
+            <input
+              type="text"
+              placeholder="123456"
+              value={codigo}
+              onChange={(e) => setCodigo(e.target.value)}
+              maxLength={6}
+              required
+            />
+          </div>
+          {erro && <p className="erro">{erro}</p>}
+          <button type="submit" disabled={loading}>
+            {loading ? 'Confirmando...' : 'Confirmar código'}
+          </button>
+          <button
+            type="button"
+            className="btn-voltar"
+            onClick={() => { setEtapa('email'); setCodigo(''); setErro('') }}
+          >
+            Usar outro e-mail
           </button>
         </form>
       )}
