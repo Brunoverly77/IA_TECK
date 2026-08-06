@@ -45,43 +45,47 @@ export default async function handler(req, res) {
   for (const conta of contas) {
     if (conta.ultimo_aviso_enviado === hojeBrasil) continue
 
-    const { data: userData } = await supabaseAdmin.auth.admin.getUserById(conta.user_id)
-    const email = userData?.user?.email
-    if (!email) continue
+    try {
+      const { data: userData } = await supabaseAdmin.auth.admin.getUserById(conta.user_id)
+      const email = userData?.user?.email
+      if (!email) continue
 
-    const dataVenc = new Date(conta.vencimento + 'T00:00:00')
-    const hoje = new Date(hojeBrasil + 'T00:00:00')
-    const diasRestantes = Math.round((dataVenc - hoje) / (1000 * 60 * 60 * 24))
+      const dataVenc = new Date(conta.vencimento + 'T00:00:00')
+      const hoje = new Date(hojeBrasil + 'T00:00:00')
+      const diasRestantes = Math.round((dataVenc - hoje) / (1000 * 60 * 60 * 24))
 
-    const assunto = diasRestantes === 0
-      ? 'Sua conta vence hoje!'
-      : `Sua conta vence em ${diasRestantes} dia${diasRestantes > 1 ? 's' : ''}!`
+      const assunto = diasRestantes === 0
+        ? 'Sua conta vence hoje!'
+        : `Sua conta vence em ${diasRestantes} dia${diasRestantes > 1 ? 's' : ''}!`
 
-    const textoDias = diasRestantes === 0
-      ? 'vence <strong>hoje</strong>'
-      : `vence em <strong>${diasRestantes} dia${diasRestantes > 1 ? 's' : ''}</strong>`
+      const textoDias = diasRestantes === 0
+        ? 'vence <strong>hoje</strong>'
+        : `vence em <strong>${diasRestantes} dia${diasRestantes > 1 ? 's' : ''}</strong>`
 
-    await resend.emails.send({
-      from: 'IA TECK <avisos@iateck.com.br>',
-      to: email,
-      subject: assunto,
-      html: `
-        <div style="font-family: sans-serif; max-width: 480px; margin: 0 auto;">
-          <h2 style="color: #6c63ff;">IA TECK</h2>
-          <p>Sua conta <strong>"${conta.descricao}"</strong> ${textoDias}.</p>
-          <p style="font-size: 18px;"><strong>Valor:</strong> R$ ${conta.valor}</p>
-          <p><strong>Data de vencimento:</strong> ${conta.vencimento}</p>
-          <p style="color: #888; font-size: 13px; margin-top: 24px;">Não esqueça de marcar como paga no painel assim que quitar essa conta.</p>
-        </div>
-      `
-    })
+      await resend.emails.send({
+        from: 'IA TECK <avisos@iateck.com.br>',
+        to: email,
+        subject: assunto,
+        html: `
+          <div style="font-family: sans-serif; max-width: 480px; margin: 0 auto;">
+            <h2 style="color: #6c63ff;">IA TECK</h2>
+            <p>Sua conta <strong>"${conta.descricao}"</strong> ${textoDias}.</p>
+            <p style="font-size: 18px;"><strong>Valor:</strong> R$ ${conta.valor}</p>
+            <p><strong>Data de vencimento:</strong> ${conta.vencimento}</p>
+            <p style="color: #888; font-size: 13px; margin-top: 24px;">Não esqueça de marcar como paga no painel assim que quitar essa conta.</p>
+          </div>
+        `
+      })
 
-    await supabaseAdmin
-      .from('contas')
-      .update({ ultimo_aviso_enviado: hojeBrasil })
-      .eq('id', conta.id)
+      await supabaseAdmin
+        .from('contas')
+        .update({ ultimo_aviso_enviado: hojeBrasil })
+        .eq('id', conta.id)
 
-    enviados++
+      enviados++
+    } catch (err) {
+      console.error(`Erro ao processar conta ${conta.id}:`, err)
+    }
   }
 
   return res.status(200).json({ processadas: enviados })
