@@ -62,7 +62,3 @@ Para testar o backend localmente também, use o Vercel CLI:
 npm install -g vercel
 vercel dev
 ```
-
-## Variáveis de ambiente
-
-Crie um arquivo `.env` na raiz do projeto com as seguintes variáveis:
