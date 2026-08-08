@@ -1,33 +1,41 @@
-# 🚀 Projeto IA TECK — Automação Financeira com React + Vercel Functions + Google Workspace
+# 🚀 Projeto IA TECK — Gestão Financeira Automatizada
 
-Desenvolvi do zero uma aplicação web completa de gestão financeira automatizada, integrando frontend moderno com um backend serverless próprio.
+Aplicação web completa para controle de contas a pagar, com login sem senha, lembretes automáticos por e-mail e recorrência mensal. Construída do zero com frontend React e um backend serverless próprio, usando Supabase como banco de dados e autenticação, e Resend para envio de e-mails transacionais.
+
+🔗 **[iateck.com.br](https://iateck.com.br)**
 
 ## 🖥️ Frontend (React + Vite)
 
-Interface responsiva construída com React.js, utilizando hooks (`useState`), componentização e consumo de API via Fetch. O formulário coleta dados financeiros como nome, datas, contas e valores formatados em BRL, com validação de email `@gmail.com` e feedback visual em tempo real.
+Interface responsiva construída com React.js, utilizando hooks (`useState`, `useEffect`) e React Router para navegação entre login e painel. O painel permite criar, editar, excluir e marcar contas como pagas, com suporte a contas recorrentes (que se recriam automaticamente no mês seguinte ao serem pagas).
 
-## ⚙️ Backend (Vercel Serverless Functions)
+## 🔐 Autenticação (Supabase Auth)
 
-Backend próprio em Node.js, rodando como função serverless na Vercel, com lógica condicional inteligente:
+Login sem senha, via código de verificação de 6 dígitos enviado por e-mail (OTP). Funciona em qualquer dispositivo, sem depender de abrir um link no mesmo aparelho onde o login foi solicitado.
 
-- Recebe os dados do formulário via `POST /api/formulario`
-- Verifica se o usuário já existe na planilha índice
-- **Usuário novo**: copia uma planilha-modelo via Google Drive API, adiciona os dados, compartilha automaticamente e registra o usuário na planilha índice
-- **Usuário existente**: adiciona uma nova linha na planilha já existente e reenvia o link por e-mail
+## 🗄️ Banco de dados (Supabase / Postgres)
 
-## ☁️ Google Workspace Integration
+Tabela `contas` com Row Level Security (RLS) ativado — cada usuário só acessa suas próprias contas, garantido no nível do banco de dados, não apenas na aplicação.
 
-- **Google Sheets API** para leitura/escrita nas planilhas individuais de cada usuário
-- **Google Drive API** para cópia do template e compartilhamento automático (autenticação via OAuth2 com conta pessoal)
-- **Gmail (via Nodemailer)** para envio automático de e-mails com o link personalizado
+## ⚙️ Backend (Vercel Serverless Functions + Cron)
 
-## 📌 Experiência do Usuário
+- `POST /api/formulario` — recebe e salva novas contas
+- `GET /api/verificar-vencimentos` — executado automaticamente todo dia via Vercel Cron Jobs; verifica contas com vencimento nos próximos 5 dias e envia lembretes por e-mail, decrescendo a contagem diariamente até a conta ser paga ou vencer
 
-Após preencher o formulário, o usuário recebe o link da sua planilha personalizada pelo site e por e-mail. A planilha já é criada diretamente na conta do proprietário do projeto, com acesso de leitura compartilhado.
+## 📧 E-mail transacional (Resend)
+
+Domínio próprio verificado (`iateck.com.br`), com SPF e DKIM configurados, usado tanto para os e-mails de autenticação (via SMTP customizado no Supabase) quanto para os lembretes de vencimento.
+
+## 📌 Experiência do usuário
+
+1. Usuário informa o e-mail e recebe um código de 6 dígitos
+2. Confirma o código e acessa seu painel pessoal de contas
+3. Cadastra contas com data de vencimento e, opcionalmente, recorrência mensal
+4. Recebe lembretes automáticos por e-mail conforme o vencimento se aproxima
+5. Marca como paga quando quitar — se for recorrente, a próxima conta é criada automaticamente
 
 ## 🛠️ Tecnologias utilizadas
 
-React.js • Vite • JavaScript • Node.js • Vercel Functions • Google Sheets API • Google Drive API • Nodemailer • REST API • Git • GitHub • Vercel • Claude
+React.js • Vite • React Router • JavaScript • Node.js • Vercel Functions • Vercel Cron Jobs • Supabase (Postgres, Auth, RLS) • Resend • REST API • Git • GitHub • Vercel • Claude
 
 ---
 
@@ -37,48 +45,20 @@ Clone o repositório:
 ```bash
 git clone https://github.com/Brunoverly77/IA_TECK.git
 ```
-
 Entre na pasta:
 ```bash
 cd IA_TECK
 ```
-
 Instale as dependências:
 ```bash
 npm install
 ```
-
 Rode o projeto (frontend):
 ```bash
 npm run dev
 ```
-
 Para testar o backend localmente também, use o Vercel CLI:
 ```bash
 npm install -g vercel
 vercel dev
 ```
-
-## Variáveis de ambiente
-
-Crie um arquivo `.env` na raiz do projeto com as seguintes variáveis:
-
-```
-# URL do backend (relativa, já que front e backend estão no mesmo domínio)
-VITE_WEBHOOK_URL=/api/formulario
-
-# IDs das planilhas/arquivos do Google Drive
-SPREADSHEET_INDICE_ID=id_da_planilha_indice
-TEMPLATE_FILE_ID=id_da_planilha_modelo
-
-# Credenciais OAuth2 do Google (para acesso ao Drive/Sheets em nome da conta pessoal)
-GOOGLE_OAUTH_CLIENT_ID=seu_client_id
-GOOGLE_OAUTH_CLIENT_SECRET=seu_client_secret
-GOOGLE_OAUTH_REFRESH_TOKEN=seu_refresh_token
-
-# Envio de e-mail via Gmail
-GMAIL_USER=seu_email@gmail.com
-GMAIL_APP_PASSWORD=sua_senha_de_app
-```
-
-> As credenciais nunca devem ser commitadas no repositório — o `.env` já está listado no `.gitignore`. Em produção, essas variáveis são cadastradas diretamente no painel da Vercel (**Settings → Environment Variables**).
