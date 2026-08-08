@@ -1,23 +1,30 @@
 .login-container {
-  background-color: #ffffff;
+  background-color: var(--cor-card);
   padding: 24px;
   border-radius: 12px;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
   width: 100%;
   max-width: 500px;
   margin: 20px;
+  position: relative;
+}
+
+.login-topo {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: -8px;
 }
 
 .login-container h1 {
   text-align: center;
   margin-bottom: 8px;
-  color: #6c63ff;
+  color: var(--cor-primaria);
 }
 
 .login-container p {
   text-align: center;
   margin-bottom: 24px;
-  color: #888;
+  color: var(--cor-texto-suave);
 }
 
 .campo {
@@ -29,22 +36,24 @@
 .campo label {
   font-size: 13px;
   font-weight: 600;
-  color: #555;
+  color: var(--cor-texto);
   margin-bottom: 6px;
 }
 
 .campo input {
   width: 100%;
   padding: 9px 12px;
-  border: 1px solid #ddd;
+  border: 1px solid var(--cor-borda);
   border-radius: 8px;
   font-size: 14px;
   outline: none;
   transition: border 0.3s;
+  background-color: var(--cor-card);
+  color: var(--cor-texto);
 }
 
 .campo input:focus {
-  border-color: #6c63ff;
+  border-color: var(--cor-primaria);
 }
 
 .linha {
@@ -59,7 +68,7 @@
 button {
   width: 100%;
   padding: 14px;
-  background-color: #6c63ff;
+  background-color: var(--cor-primaria);
   color: white;
   border: none;
   border-radius: 8px;
@@ -73,11 +82,11 @@ button {
 }
 
 button:hover {
-  background-color: #5548e0;
+  background-color: var(--cor-primaria-hover);
 }
 
 button:disabled {
-  background-color: #a89ff5;
+  background-color: var(--cor-primaria-disabled);
   cursor: not-allowed;
 }
 
@@ -95,9 +104,9 @@ button:disabled {
 }
 
 .mensagem-sucesso {
-  background-color: #e6ffed;
-  color: #2d7a4f;
-  border: 1px solid #b7f5c8;
+  background-color: var(--cor-verde-fundo);
+  color: var(--cor-verde);
+  border: 1px solid var(--cor-verde-borda);
   border-radius: 8px;
   padding: 16px;
   text-align: center;
@@ -114,7 +123,7 @@ button:disabled {
 }
 
 .mensagem-sucesso a {
-  color: #1a5c36 !important;
+  color: var(--cor-verde) !important;
   font-weight: bold;
   text-decoration: underline;
   display: block;
@@ -122,24 +131,24 @@ button:disabled {
 }
 
 .mensagem-sucesso a:hover {
-  color: #0f3d24;
+  opacity: 0.85;
 }
 
 .historico {
   margin-top: 30px;
-  border-top: 1px solid #eee;
+  border-top: 1px solid var(--cor-borda);
   padding-top: 20px;
 }
 
 .historico h2 {
-  color: #6c63ff;
+  color: var(--cor-primaria);
   margin-bottom: 16px;
   font-size: 18px;
 }
 
 .historico-item {
-  background-color: #f8f7ff;
-  border: 1px solid #e0deff;
+  background-color: var(--cor-fundo-suave);
+  border: 1px solid var(--cor-borda);
   border-radius: 8px;
   padding: 12px;
   margin-bottom: 10px;
@@ -149,16 +158,22 @@ button:disabled {
 
 .aviso-codigo {
   font-size: 13px;
-  color: #666;
+  color: var(--cor-texto-suave);
   margin-bottom: 12px;
   text-align: center;
 }
 
 .btn-voltar {
   background: transparent !important;
-  color: #6c63ff !important;
+  color: var(--cor-primaria) !important;
   margin-top: 8px;
   font-size: 13px;
+}
+
+.erro {
+  color: var(--cor-vermelho);
+  font-size: 13px;
+  margin-bottom: 8px;
 }
 
 @media (max-width: 480px) {

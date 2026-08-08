@@ -6,6 +6,9 @@
     <title>IA-Teck</title>
   </head>
   <body>
+    <script>
+      document.documentElement.setAttribute('data-theme', localStorage.getItem('tema') === 'escuro' ? 'dark' : 'light')
+    </script>
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
   </body>

@@ -1,9 +1,11 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../../services/supabase'
+import { useTema } from '../../hooks/useTema'
 import './Login.css'
 
 function Login() {
+  const [escuro, setEscuro] = useTema()
   const [email, setEmail] = useState('')
   const [codigo, setCodigo] = useState('')
   const [etapa, setEtapa] = useState('email')
@@ -51,6 +53,16 @@ function Login() {
 
   return (
     <div className="login-container">
+      <div className="login-topo">
+        <button
+          className="btn-tema"
+          onClick={() => setEscuro(v => !v)}
+          title={escuro ? 'Modo claro' : 'Modo escuro'}
+          type="button"
+        >
+          {escuro ? '☀️' : '🌙'}
+        </button>
+      </div>
       <h1>IA TECK</h1>
       <p>Entre com seu e-mail pra ver suas contas</p>
 
