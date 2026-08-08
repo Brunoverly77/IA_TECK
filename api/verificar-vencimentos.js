@@ -72,7 +72,7 @@ export default async function handler(req, res) {
             <p>Sua conta <strong>"${conta.descricao}"</strong> ${textoDias}.</p>
             <p style="font-size: 18px;"><strong>Valor:</strong> R$ ${conta.valor}</p>
             <p><strong>Data de vencimento:</strong> ${conta.vencimento}</p>
-            <p style="color: #888; font-size: 13px; margin-top: 24px;">Não esqueça de marcar como paga no painel assim que quitar essa conta.</p>
+            <p style="color: #888; font-size: 13px; margin-top: 24px;">Assim que quitar essa conta, acesse o <a href="https://iateck.com.br" style="color: #6c63ff;">iateck.com.br</a> para marcar como paga.</p>
           </div>
         `
       })
