@@ -348,12 +348,12 @@ function Painel() {
             </button>
             <button
               type="button"
-              className={`resumo-card ${filtroTabela === 'recentes' ? 'resumo-card-ativo' : ''}`}
-              onClick={() => setFiltroTabela('recentes')}
+              className={`resumo-card ${filtroTabela === 'pendentes' ? 'resumo-card-ativo' : ''}`}
+              onClick={() => setFiltroTabela('pendentes')}
             >
               <span className="resumo-icone">📋</span>
-              <span className="resumo-label">Total de contas</span>
-              <span className="resumo-valor">{contas.length}</span>
+              <span className="resumo-label">Contas em aberto</span>
+              <span className="resumo-valor">{resumo.pendentes.length}</span>
             </button>
           </div>
 
