@@ -126,6 +126,9 @@ function Painel() {
     await carregarContas()
   }
 
+  const formatarDataISO = (d) =>
+    `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+
   const handleMarcarPaga = async (conta) => {
   await supabase
     .from('contas')
@@ -133,23 +136,27 @@ function Painel() {
     .eq('id', conta.id)
 
   if (conta.recorrente) {
-    const proximoVencimento = new Date(conta.vencimento)
-    proximoVencimento.setMonth(proximoVencimento.getMonth() + 1)
+    const [ano, mes, dia] = conta.vencimento.split('-').map(Number)
+    const proximoVencimento = formatarDataISO(new Date(ano, mes, dia))
 
     const { data: { user } } = await supabase.auth.getUser()
 
-    await supabase.from('contas').insert({
+    const { error } = await supabase.from('contas').insert({
       descricao: conta.descricao,
       valor: conta.valor,
-      data: new Date().toISOString().split('T')[0],
-      vencimento: proximoVencimento.toISOString().split('T')[0],
+      data: formatarDataISO(new Date()),
+      vencimento: proximoVencimento,
       recorrente: true,
       pago: false,
-      aviso_enviado: false,
+      ultimo_aviso_enviado: null,
       user_id: user.id,
       nome: '',
       sobrenome: ''
     })
+
+    if (error) {
+      alert('A conta foi marcada como paga, mas não consegui criar a próxima conta recorrente automaticamente. Crie ela manualmente pra não perder o controle.')
+    }
   }
 
   await carregarContas()
@@ -226,13 +233,6 @@ function Painel() {
   const statusBadge = (conta) => {
     if (conta.pago) return { texto: 'Paga', classe: 'status-paga' }
     return statusConta(conta.vencimento)
-  }
-
-  const formatarDataISO = (date) => {
-    const ano = date.getFullYear()
-    const mes = String(date.getMonth() + 1).padStart(2, '0')
-    const dia = String(date.getDate()).padStart(2, '0')
-    return `${ano}-${mes}-${dia}`
   }
 
   const mudarMes = (delta) => {
