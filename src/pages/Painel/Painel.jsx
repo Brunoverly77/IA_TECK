@@ -4,11 +4,34 @@ import { supabase } from '../../services/supabase'
 import { useTema } from '../../hooks/useTema'
 import './Painel.css'
 
+// 'YYYY-MM-DD' precisa ser lido no fuso local: new Date('2026-09-01') seria
+// meia-noite em UTC, ou seja 31/08 às 21h no Brasil — um dia a menos.
+const dataLocal = (iso) => {
+  const [ano, mes, dia] = iso.split('-').map(Number)
+  return new Date(ano, mes - 1, dia)
+}
+
+const formatarDataISO = (d) =>
+  `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+
+const inicioDoDia = () => {
+  const d = new Date()
+  d.setHours(0, 0, 0, 0)
+  return d
+}
+
+// dias inteiros entre hoje e o vencimento, sem depender da hora atual
+const diasAte = (vencimento) =>
+  Math.round((dataLocal(vencimento) - inicioDoDia()) / (1000 * 60 * 60 * 24))
+
 function Painel() {
   const navigate = useNavigate()
   const [escuro, setEscuro] = useTema()
   const [aba, setAba] = useState('dashboard')
   const [filtroTabela, setFiltroTabela] = useState('recentes')
+  const [cardAtivo, setCardAtivo] = useState(null)
+  const [processandoId, setProcessandoId] = useState(null)
+  const [mostrarTodasPagas, setMostrarTodasPagas] = useState(false)
   const [mesCalendario, setMesCalendario] = useState(() => {
     const hoje = new Date()
     hoje.setDate(1)
@@ -21,15 +44,18 @@ function Painel() {
   const [contaEditando, setContaEditando] = useState(null)
   const [form, setForm] = useState({ descricao: '', valor: '', data: '', vencimento: '', recorrente: false })
 
-  const carregarContas = async () => {
-    setCarregando(true)
+  // silencioso: recarrega sem mostrar a tela de "Carregando...", pra nao piscar
+  // o painel inteiro a cada evento do Realtime ou a cada acao do usuario
+  const carregarContas = async ({ silencioso = false } = {}) => {
+    if (!silencioso) setCarregando(true)
+
     const { data, error } = await supabase
       .from('contas')
       .select('*')
       .order('vencimento', { ascending: true })
 
     if (!error) setContas(data)
-    setCarregando(false)
+    if (!silencioso) setCarregando(false)
   }
 
   useEffect(() => {
@@ -53,7 +79,7 @@ function Painel() {
           table: 'contas',
           filter: `user_id=eq.${session.user.id}`
         }, () => {
-          carregarContas()
+          carregarContas({ silencioso: true })
         })
         .subscribe()
     }
@@ -63,7 +89,7 @@ function Painel() {
     return () => {
       if (canal) supabase.removeChannel(canal)
     }
-  }, [])
+  }, [navigate])
 
   // recalcula os status de vencimento (ex: "Vence em X dias") mesmo sem nenhuma ação do usuário
   const [, forcarAtualizacao] = useState(0)
@@ -115,60 +141,75 @@ function Painel() {
     }
 
     setModalAberto(false)
-    await carregarContas()
+    await carregarContas({ silencioso: true })
   }
 
   const handleExcluir = async (id) => {
     const confirmar = window.confirm('Excluir essa conta?')
     if (!confirmar) return
 
-    await supabase.from('contas').delete().eq('id', id)
-    await carregarContas()
-  }
-
-  const formatarDataISO = (d) =>
-    `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
-
-  const handleMarcarPaga = async (conta) => {
-  await supabase
-    .from('contas')
-    .update({ pago: true })
-    .eq('id', conta.id)
-
-  if (conta.recorrente) {
-    const [ano, mes, dia] = conta.vencimento.split('-').map(Number)
-    const proximoVencimento = formatarDataISO(new Date(ano, mes, dia))
-
-    const { data: { user } } = await supabase.auth.getUser()
-
-    const { error } = await supabase.from('contas').insert({
-      descricao: conta.descricao,
-      valor: conta.valor,
-      data: formatarDataISO(new Date()),
-      vencimento: proximoVencimento,
-      recorrente: true,
-      pago: false,
-      ultimo_aviso_enviado: null,
-      user_id: user.id,
-      nome: '',
-      sobrenome: ''
-    })
+    const { error } = await supabase.from('contas').delete().eq('id', id)
 
     if (error) {
-      alert('A conta foi marcada como paga, mas não consegui criar a próxima conta recorrente automaticamente. Crie ela manualmente pra não perder o controle.')
+      alert('Não foi possível excluir essa conta. Tente novamente.')
+      return
+    }
+
+    await carregarContas({ silencioso: true })
+  }
+
+  const handleMarcarPaga = async (conta) => {
+    if (processandoId) return
+    setProcessandoId(conta.id)
+
+    try {
+      const { error: erroUpdate } = await supabase
+        .from('contas')
+        .update({ pago: true })
+        .eq('id', conta.id)
+
+      if (erroUpdate) {
+        alert('Não foi possível marcar essa conta como paga. Tente novamente.')
+        return
+      }
+
+      if (conta.recorrente) {
+        const [ano, mes, dia] = conta.vencimento.split('-').map(Number)
+        const proximoVencimento = formatarDataISO(new Date(ano, mes, dia))
+
+        const { data: { user } } = await supabase.auth.getUser()
+
+        const { error } = await supabase.from('contas').insert({
+          descricao: conta.descricao,
+          valor: conta.valor,
+          data: formatarDataISO(new Date()),
+          vencimento: proximoVencimento,
+          recorrente: true,
+          pago: false,
+          ultimo_aviso_enviado: null,
+          user_id: user.id,
+          nome: '',
+          sobrenome: ''
+        })
+
+        if (error) {
+          alert('A conta foi marcada como paga, mas não consegui criar a próxima conta recorrente automaticamente. Crie ela manualmente pra não perder o controle.')
+        }
+      }
+
+      await carregarContas({ silencioso: true })
+    } finally {
+      setProcessandoId(null)
     }
   }
 
-  await carregarContas()
-}
-
   const statusConta = (vencimento) => {
-    const hoje = new Date()
-    const dataVenc = new Date(vencimento)
-    const diffDias = Math.ceil((dataVenc - hoje) / (1000 * 60 * 60 * 24))
+    const dias = diasAte(vencimento)
 
-    if (diffDias < 0) return { texto: 'Vencida', classe: 'status-vencida' }
-    if (diffDias <= 5) return { texto: `Vence em ${diffDias} dias`, classe: 'status-proxima' }
+    if (dias < 0) return { texto: 'Vencida', classe: 'status-vencida' }
+    if (dias === 0) return { texto: 'Vence hoje', classe: 'status-proxima' }
+    if (dias === 1) return { texto: 'Vence amanhã', classe: 'status-proxima' }
+    if (dias <= 5) return { texto: `Vence em ${dias} dias`, classe: 'status-proxima' }
     return { texto: 'Em dia', classe: 'status-ok' }
   }
 
@@ -176,33 +217,41 @@ function Painel() {
     valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
 
   const montarResumo = () => {
-    const hoje = new Date()
+    const hoje = inicioDoDia()
+    const mesAtual = hoje.getMonth()
+    const anoAtual = hoje.getFullYear()
+
     const pendentes = contas.filter(c => !c.pago)
     const pagas = contas.filter(c => c.pago)
-    const vencidas = pendentes.filter(c => new Date(c.vencimento) < hoje)
-    const aVencer = pendentes.filter(c => new Date(c.vencimento) >= hoje)
+    const vencidas = pendentes.filter(c => diasAte(c.vencimento) < 0)
+    const aVencer = pendentes.filter(c => diasAte(c.vencimento) >= 0)
     const vencendoEm7 = pendentes.filter(c => {
-      const diffDias = Math.ceil((new Date(c.vencimento) - hoje) / (1000 * 60 * 60 * 24))
-      return diffDias >= 0 && diffDias <= 7
+      const dias = diasAte(c.vencimento)
+      return dias >= 0 && dias <= 7
     })
 
     const totalPendente = pendentes.reduce((soma, c) => soma + Number(c.valor), 0)
     const totalPago = pagas.reduce((soma, c) => soma + Number(c.valor), 0)
 
     const pagasEsteMes = pagas.filter(c => {
-      const data = new Date(c.vencimento)
-      return data.getMonth() === hoje.getMonth() && data.getFullYear() === hoje.getFullYear()
+      const data = dataLocal(c.vencimento)
+      return data.getMonth() === mesAtual && data.getFullYear() === anoAtual
     })
     const totalPagoMes = pagasEsteMes.reduce((soma, c) => soma + Number(c.valor), 0)
 
+    // o grafico mostra os ultimos 6 meses e tudo que ainda esta por vir, senao
+    // ele ganharia uma barra nova todo mes pra sempre por causa das recorrentes
+    const ordemAtual = anoAtual * 12 + mesAtual
     const porMes = {}
     contas.forEach(c => {
-      const data = new Date(c.vencimento)
-      const chave = `${data.getFullYear()}-${data.getMonth()}`
-      if (!porMes[chave]) {
-        porMes[chave] = { label: data.toLocaleDateString('pt-BR', { month: 'short' }), total: 0, ordem: data.getFullYear() * 12 + data.getMonth() }
+      const data = dataLocal(c.vencimento)
+      const ordem = data.getFullYear() * 12 + data.getMonth()
+      if (ordem < ordemAtual - 5) return
+
+      if (!porMes[ordem]) {
+        porMes[ordem] = { label: data.toLocaleDateString('pt-BR', { month: 'short' }), total: 0, ordem }
       }
-      porMes[chave].total += Number(c.valor)
+      porMes[ordem].total += Number(c.valor)
     })
     const grafico = Object.values(porMes).sort((a, b) => a.ordem - b.ordem)
     const maiorValor = Math.max(1, ...grafico.map(m => m.total))
@@ -220,22 +269,37 @@ function Painel() {
     'pagas-mes': 'Pagas este mês'
   }
 
+  // o card e a aba da tabela sao controles distintos: varios cards levam ao mesmo
+  // filtro, entao guardar qual card foi clicado evita acender dois de uma vez
+  const selecionarCard = (id, filtro) => {
+    setCardAtivo(id)
+    setFiltroTabela(filtro)
+  }
+
+  const selecionarAba = (filtro) => {
+    setCardAtivo(null)
+    setFiltroTabela(filtro)
+  }
+
+  const maisProximo = (a, b) => dataLocal(a.vencimento) - dataLocal(b.vencimento)
+  const maisRecente = (a, b) => dataLocal(b.vencimento) - dataLocal(a.vencimento)
+
   const contasDaTabela = (resumo) => {
     switch (filtroTabela) {
       case 'avencer':
-        return [...resumo.aVencer].sort((a, b) => new Date(a.vencimento) - new Date(b.vencimento))
+        return [...resumo.aVencer].sort(maisProximo)
       case 'vencidas':
-        return [...resumo.vencidas].sort((a, b) => new Date(a.vencimento) - new Date(b.vencimento))
+        return [...resumo.vencidas].sort(maisProximo)
       case 'pagas':
-        return [...resumo.pagas].sort((a, b) => new Date(b.vencimento) - new Date(a.vencimento))
+        return [...resumo.pagas].sort(maisRecente)
       case 'pagas-mes':
-        return [...resumo.pagasEsteMes].sort((a, b) => new Date(b.vencimento) - new Date(a.vencimento))
+        return [...resumo.pagasEsteMes].sort(maisRecente)
       case 'pendentes':
-        return [...resumo.pendentes].sort((a, b) => new Date(a.vencimento) - new Date(b.vencimento))
+        return [...resumo.pendentes].sort(maisProximo)
       case 'vencendo7':
-        return [...resumo.vencendoEm7].sort((a, b) => new Date(a.vencimento) - new Date(b.vencimento))
+        return [...resumo.vencendoEm7].sort(maisProximo)
       default:
-        return [...contas].sort((a, b) => new Date(b.data) - new Date(a.data))
+        return [...contas].sort((a, b) => dataLocal(b.data) - dataLocal(a.data))
     }
   }
 
@@ -281,6 +345,7 @@ function Painel() {
 
   const hojeChave = formatarDataISO(new Date())
   const diasCalendario = montarDiasCalendario()
+  const historicoPagas = [...resumo.pagas].sort(maisRecente)
 
   return (
     <div className="painel-container">
@@ -319,69 +384,26 @@ function Painel() {
       {aba === 'dashboard' && (
         <>
           <div className="resumo-cards">
-            <button
-              type="button"
-              className={`resumo-card ${filtroTabela === 'pendentes' ? 'resumo-card-ativo' : ''}`}
-              onClick={() => setFiltroTabela('pendentes')}
-            >
-              <span className="resumo-icone">💰</span>
-              <span className="resumo-label">Total pendente</span>
-              <span className="resumo-valor">{formatarValor(resumo.totalPendente)}</span>
-            </button>
-            <button
-              type="button"
-              className={`resumo-card ${filtroTabela === 'pagas' ? 'resumo-card-ativo' : ''}`}
-              onClick={() => setFiltroTabela('pagas')}
-            >
-              <span className="resumo-icone">✅</span>
-              <span className="resumo-label">Pagamento total</span>
-              <span className="resumo-valor resumo-verde">{formatarValor(resumo.totalPago)}</span>
-            </button>
-            <button
-              type="button"
-              className={`resumo-card ${filtroTabela === 'pagas-mes' ? 'resumo-card-ativo' : ''}`}
-              onClick={() => setFiltroTabela('pagas-mes')}
-            >
-              <span className="resumo-icone">📆</span>
-              <span className="resumo-label">Pago este mês</span>
-              <span className="resumo-valor resumo-verde">{formatarValor(resumo.totalPagoMes)}</span>
-            </button>
-            <button
-              type="button"
-              className={`resumo-card ${filtroTabela === 'pagas-mes' ? 'resumo-card-ativo' : ''}`}
-              onClick={() => setFiltroTabela('pagas-mes')}
-            >
-              <span className="resumo-icone">🧾</span>
-              <span className="resumo-label">Contas pagas este mês</span>
-              <span className="resumo-valor resumo-verde">{resumo.pagasEsteMes.length}</span>
-            </button>
-            <button
-              type="button"
-              className={`resumo-card ${filtroTabela === 'vencidas' ? 'resumo-card-ativo' : ''}`}
-              onClick={() => setFiltroTabela('vencidas')}
-            >
-              <span className="resumo-icone">⚠️</span>
-              <span className="resumo-label">Contas vencidas</span>
-              <span className="resumo-valor">{resumo.vencidas.length}</span>
-            </button>
-            <button
-              type="button"
-              className={`resumo-card ${filtroTabela === 'vencendo7' ? 'resumo-card-ativo' : ''}`}
-              onClick={() => setFiltroTabela('vencendo7')}
-            >
-              <span className="resumo-icone">⏰</span>
-              <span className="resumo-label">Vencendo em 7 dias</span>
-              <span className="resumo-valor resumo-laranja">{resumo.vencendoEm7.length}</span>
-            </button>
-            <button
-              type="button"
-              className={`resumo-card ${filtroTabela === 'pendentes' ? 'resumo-card-ativo' : ''}`}
-              onClick={() => setFiltroTabela('pendentes')}
-            >
-              <span className="resumo-icone">📋</span>
-              <span className="resumo-label">Contas em aberto</span>
-              <span className="resumo-valor">{resumo.pendentes.length}</span>
-            </button>
+            {[
+              { id: 'total-pendente', filtro: 'pendentes', icone: '💰', label: 'Total pendente', valor: formatarValor(resumo.totalPendente) },
+              { id: 'pagamento-total', filtro: 'pagas', icone: '✅', label: 'Pagamento total', valor: formatarValor(resumo.totalPago), cor: 'resumo-verde' },
+              { id: 'pago-mes', filtro: 'pagas-mes', icone: '📆', label: 'Pago este mês', valor: formatarValor(resumo.totalPagoMes), cor: 'resumo-verde' },
+              { id: 'contas-pagas-mes', filtro: 'pagas-mes', icone: '🧾', label: 'Contas pagas este mês', valor: resumo.pagasEsteMes.length, cor: 'resumo-verde' },
+              { id: 'vencidas', filtro: 'vencidas', icone: '⚠️', label: 'Contas vencidas', valor: resumo.vencidas.length },
+              { id: 'vencendo7', filtro: 'vencendo7', icone: '⏰', label: 'Vencendo em 7 dias', valor: resumo.vencendoEm7.length, cor: 'resumo-laranja' },
+              { id: 'em-aberto', filtro: 'pendentes', icone: '📋', label: 'Contas em aberto', valor: resumo.pendentes.length }
+            ].map(card => (
+              <button
+                key={card.id}
+                type="button"
+                className={`resumo-card ${cardAtivo === card.id ? 'resumo-card-ativo' : ''}`}
+                onClick={() => selecionarCard(card.id, card.filtro)}
+              >
+                <span className="resumo-icone">{card.icone}</span>
+                <span className="resumo-label">{card.label}</span>
+                <span className={`resumo-valor ${card.cor || ''}`}>{card.valor}</span>
+              </button>
+            ))}
           </div>
 
           <div className="resumo-painel">
@@ -471,7 +493,7 @@ function Painel() {
 
             {diaSelecionado && (
               <div className="calendario-selecionado-lista">
-                <h4>{new Date(diaSelecionado + 'T00:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: 'long' })}</h4>
+                <h4>{dataLocal(diaSelecionado).toLocaleDateString('pt-BR', { day: '2-digit', month: 'long' })}</h4>
                 {(contasPorDia[diaSelecionado] || []).length === 0 ? (
                   <p className="vazio">Nenhuma conta nesse dia.</p>
                 ) : (
@@ -499,7 +521,7 @@ function Painel() {
                     key={valor}
                     type="button"
                     className={`tabela-tab ${filtroTabela === valor ? 'tabela-tab-ativa' : ''}`}
-                    onClick={() => setFiltroTabela(valor)}
+                    onClick={() => selecionarAba(valor)}
                   >
                     {rotulosFiltro[valor]}
                   </button>
@@ -510,7 +532,7 @@ function Painel() {
             {['pendentes', 'vencendo7', 'pagas-mes'].includes(filtroTabela) && (
               <div className="filtro-chip">
                 Mostrando: {rotulosFiltro[filtroTabela]}
-                <button type="button" onClick={() => setFiltroTabela('recentes')}>×</button>
+                <button type="button" onClick={() => selecionarAba('recentes')}>×</button>
               </div>
             )}
 
@@ -534,7 +556,7 @@ function Painel() {
                         <tr key={conta.id} onClick={() => abrirModalEditar(conta)}>
                           <td>{conta.descricao}</td>
                           <td>{formatarValor(Number(conta.valor))}</td>
-                          <td>{new Date(conta.vencimento + 'T00:00:00').toLocaleDateString('pt-BR')}</td>
+                          <td>{dataLocal(conta.vencimento).toLocaleDateString('pt-BR')}</td>
                           <td><span className={`status ${badge.classe}`}>{badge.texto}</span></td>
                         </tr>
                       )
@@ -562,7 +584,12 @@ function Painel() {
                   </div>
                   <div className="conta-acoes">
                     <span className={`status ${status.classe}`}>{status.texto}</span>
-                    <button onClick={() => handleMarcarPaga(conta)}>Marcar como paga</button>
+                    <button
+                      onClick={() => handleMarcarPaga(conta)}
+                      disabled={processandoId === conta.id}
+                    >
+                      {processandoId === conta.id ? 'Salvando...' : 'Marcar como paga'}
+                    </button>
                     <button onClick={() => abrirModalEditar(conta)}>Editar</button>
                     <button onClick={() => handleExcluir(conta.id)}>Excluir</button>
                   </div>
@@ -571,15 +598,27 @@ function Painel() {
             })}
           </div>
 
-          {contas.filter(c => c.pago).length > 0 && (
+          {historicoPagas.length > 0 && (
             <div className="historico-pagas">
               <h3>Contas pagas</h3>
-              {contas.filter(c => c.pago).map((conta) => (
+              {(mostrarTodasPagas ? historicoPagas : historicoPagas.slice(0, 10)).map((conta) => (
                 <div key={conta.id} className="conta-paga">
                   <span>{conta.descricao} · R$ {conta.valor}</span>
                   <button onClick={() => handleExcluir(conta.id)}>Excluir</button>
                 </div>
               ))}
+
+              {historicoPagas.length > 10 && (
+                <button
+                  type="button"
+                  className="btn-ver-mais"
+                  onClick={() => setMostrarTodasPagas(v => !v)}
+                >
+                  {mostrarTodasPagas
+                    ? 'Mostrar menos'
+                    : `Ver todas as ${historicoPagas.length} contas pagas`}
+                </button>
+              )}
             </div>
           )}
         </>

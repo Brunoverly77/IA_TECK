@@ -585,6 +585,29 @@
   color: var(--cor-texto);
 }
 
+.conta-acoes button:disabled {
+  background: transparent;
+  opacity: 0.6;
+  cursor: wait;
+}
+
+.btn-ver-mais {
+  background: transparent;
+  border: 1px solid var(--cor-borda);
+  color: var(--cor-texto-suave);
+  width: 100%;
+  height: auto;
+  padding: 8px;
+  border-radius: 8px;
+  font-size: 13px;
+  cursor: pointer;
+  margin-top: 4px;
+}
+
+.btn-ver-mais:hover {
+  background: var(--cor-fundo-suave);
+}
+
 .status {
   font-size: 12px;
   padding: 4px 10px;

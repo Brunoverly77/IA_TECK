@@ -50,7 +50,7 @@ function Formulario() {
         valor: ''
       })
       setTimeout(() => setSucesso(false), 20000)
-    } catch (error) {
+    } catch {
       alert('Erro ao enviar! Tente novamente.')
     } finally {
       setLoading(false)

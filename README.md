@@ -31,8 +31,9 @@ Tabela `contas` com Row Level Security (RLS) ativado — cada usuário só acess
 
 ## ⚙️ Backend (Vercel Serverless Functions + Cron)
 
-- `POST /api/formulario` — recebe e salva novas contas
 - `GET /api/verificar-vencimentos` — executado automaticamente todo dia via Vercel Cron Jobs; verifica contas com vencimento nos próximos 5 dias e envia lembretes por e-mail, decrescendo a contagem diariamente até a conta ser paga ou vencer
+
+> `POST /api/formulario` era o fluxo antigo, que gerava uma planilha no Google Sheets por usuário. Foi descontinuado quando o app passou a usar o Supabase — a rota hoje responde `410 Gone`.
 
 ## 📧 E-mail transacional (Resend)
 

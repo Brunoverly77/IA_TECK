@@ -7,7 +7,11 @@
   </head>
   <body>
     <script>
-      document.documentElement.setAttribute('data-theme', localStorage.getItem('tema') === 'escuro' ? 'dark' : 'light')
+      try {
+        document.documentElement.setAttribute('data-theme', localStorage.getItem('tema') === 'escuro' ? 'dark' : 'light')
+      } catch (e) {
+        document.documentElement.setAttribute('data-theme', 'light')
+      }
     </script>
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
