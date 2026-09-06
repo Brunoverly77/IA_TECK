@@ -189,6 +189,12 @@ function Painel() {
     const totalPendente = pendentes.reduce((soma, c) => soma + Number(c.valor), 0)
     const totalPago = pagas.reduce((soma, c) => soma + Number(c.valor), 0)
 
+    const pagasEsteMes = pagas.filter(c => {
+      const data = new Date(c.vencimento)
+      return data.getMonth() === hoje.getMonth() && data.getFullYear() === hoje.getFullYear()
+    })
+    const totalPagoMes = pagasEsteMes.reduce((soma, c) => soma + Number(c.valor), 0)
+
     const porMes = {}
     contas.forEach(c => {
       const data = new Date(c.vencimento)
@@ -201,7 +207,7 @@ function Painel() {
     const grafico = Object.values(porMes).sort((a, b) => a.ordem - b.ordem)
     const maiorValor = Math.max(1, ...grafico.map(m => m.total))
 
-    return { pendentes, pagas, vencidas, aVencer, vencendoEm7, totalPendente, totalPago, grafico, maiorValor }
+    return { pendentes, pagas, pagasEsteMes, vencidas, aVencer, vencendoEm7, totalPendente, totalPago, totalPagoMes, grafico, maiorValor }
   }
 
   const rotulosFiltro = {
@@ -210,7 +216,8 @@ function Painel() {
     vencidas: 'Vencidas',
     pagas: 'Pagas',
     pendentes: 'Pendentes',
-    vencendo7: 'Vencendo em 7 dias'
+    vencendo7: 'Vencendo em 7 dias',
+    'pagas-mes': 'Pagas este mês'
   }
 
   const contasDaTabela = (resumo) => {
@@ -221,6 +228,8 @@ function Painel() {
         return [...resumo.vencidas].sort((a, b) => new Date(a.vencimento) - new Date(b.vencimento))
       case 'pagas':
         return [...resumo.pagas].sort((a, b) => new Date(b.vencimento) - new Date(a.vencimento))
+      case 'pagas-mes':
+        return [...resumo.pagasEsteMes].sort((a, b) => new Date(b.vencimento) - new Date(a.vencimento))
       case 'pendentes':
         return [...resumo.pendentes].sort((a, b) => new Date(a.vencimento) - new Date(b.vencimento))
       case 'vencendo7':
@@ -321,12 +330,12 @@ function Painel() {
             </button>
             <button
               type="button"
-              className={`resumo-card ${filtroTabela === 'pagas' ? 'resumo-card-ativo' : ''}`}
-              onClick={() => setFiltroTabela('pagas')}
+              className={`resumo-card ${filtroTabela === 'pagas-mes' ? 'resumo-card-ativo' : ''}`}
+              onClick={() => setFiltroTabela('pagas-mes')}
             >
               <span className="resumo-icone">✅</span>
-              <span className="resumo-label">Pagamento total</span>
-              <span className="resumo-valor resumo-verde">{formatarValor(resumo.totalPago)}</span>
+              <span className="resumo-label">Pago este mês</span>
+              <span className="resumo-valor resumo-verde">{formatarValor(resumo.totalPagoMes)}</span>
             </button>
             <button
               type="button"
@@ -480,7 +489,7 @@ function Painel() {
               </div>
             </div>
 
-            {['pendentes', 'vencendo7'].includes(filtroTabela) && (
+            {['pendentes', 'vencendo7', 'pagas-mes'].includes(filtroTabela) && (
               <div className="filtro-chip">
                 Mostrando: {rotulosFiltro[filtroTabela]}
                 <button type="button" onClick={() => setFiltroTabela('recentes')}>×</button>
