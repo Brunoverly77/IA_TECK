@@ -330,12 +330,30 @@ function Painel() {
             </button>
             <button
               type="button"
+              className={`resumo-card ${filtroTabela === 'pagas' ? 'resumo-card-ativo' : ''}`}
+              onClick={() => setFiltroTabela('pagas')}
+            >
+              <span className="resumo-icone">✅</span>
+              <span className="resumo-label">Pagamento total</span>
+              <span className="resumo-valor resumo-verde">{formatarValor(resumo.totalPago)}</span>
+            </button>
+            <button
+              type="button"
               className={`resumo-card ${filtroTabela === 'pagas-mes' ? 'resumo-card-ativo' : ''}`}
               onClick={() => setFiltroTabela('pagas-mes')}
             >
-              <span className="resumo-icone">✅</span>
+              <span className="resumo-icone">📆</span>
               <span className="resumo-label">Pago este mês</span>
               <span className="resumo-valor resumo-verde">{formatarValor(resumo.totalPagoMes)}</span>
+            </button>
+            <button
+              type="button"
+              className={`resumo-card ${filtroTabela === 'pagas-mes' ? 'resumo-card-ativo' : ''}`}
+              onClick={() => setFiltroTabela('pagas-mes')}
+            >
+              <span className="resumo-icone">🧾</span>
+              <span className="resumo-label">Contas pagas este mês</span>
+              <span className="resumo-valor resumo-verde">{resumo.pagasEsteMes.length}</span>
             </button>
             <button
               type="button"
