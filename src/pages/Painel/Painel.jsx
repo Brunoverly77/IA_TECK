@@ -347,6 +347,22 @@ function Painel() {
   const diasCalendario = montarDiasCalendario()
   const historicoPagas = [...resumo.pagas].sort(maisRecente)
 
+  // agrupa por mes de vencimento; como historicoPagas ja vem do mais recente
+  // pro mais antigo, os grupos tambem ficam nessa ordem
+  const pagasPorMes = []
+  historicoPagas.forEach(conta => {
+    const data = dataLocal(conta.vencimento)
+    const chave = `${data.getFullYear()}-${data.getMonth()}`
+    let grupo = pagasPorMes[pagasPorMes.length - 1]
+    if (!grupo || grupo.chave !== chave) {
+      const nome = data.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })
+      grupo = { chave, nome: nome.charAt(0).toUpperCase() + nome.slice(1), contas: [], total: 0 }
+      pagasPorMes.push(grupo)
+    }
+    grupo.contas.push(conta)
+    grupo.total += Number(conta.valor)
+  })
+
   return (
     <div className="painel-container">
       <div className="painel-header">
@@ -601,14 +617,39 @@ function Painel() {
           {historicoPagas.length > 0 && (
             <div className="historico-pagas">
               <h3>Contas pagas</h3>
-              {(mostrarTodasPagas ? historicoPagas : historicoPagas.slice(0, 10)).map((conta) => (
-                <div key={conta.id} className="conta-paga">
-                  <span>{conta.descricao} · R$ {conta.valor}</span>
-                  <button onClick={() => handleExcluir(conta.id)}>Excluir</button>
-                </div>
+              {(mostrarTodasPagas ? pagasPorMes : pagasPorMes.slice(0, 3)).map((grupo, i) => (
+                <details key={grupo.chave} className="pagas-mes" open={i === 0}>
+                  <summary>
+                    <span className="pagas-mes-nome">{grupo.nome}</span>
+                    <span className="pagas-mes-resumo">
+                      {grupo.contas.length} {grupo.contas.length === 1 ? 'conta' : 'contas'} · {formatarValor(grupo.total)}
+                    </span>
+                  </summary>
+
+                  {grupo.contas.map((conta) => (
+                    <div key={conta.id} className="conta-paga">
+                      <span className="conta-paga-check">✓</span>
+                      <div className="conta-paga-info">
+                        <span className="conta-paga-descricao">{conta.descricao}</span>
+                        <span className="conta-paga-data">
+                          Venc. {dataLocal(conta.vencimento).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })}
+                        </span>
+                      </div>
+                      <span className="conta-paga-valor">{formatarValor(Number(conta.valor))}</span>
+                      <button
+                        className="conta-paga-excluir"
+                        onClick={() => handleExcluir(conta.id)}
+                        title="Excluir"
+                        aria-label={`Excluir ${conta.descricao}`}
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  ))}
+                </details>
               ))}
 
-              {historicoPagas.length > 10 && (
+              {pagasPorMes.length > 3 && (
                 <button
                   type="button"
                   className="btn-ver-mais"
@@ -616,7 +657,7 @@ function Painel() {
                 >
                   {mostrarTodasPagas
                     ? 'Mostrar menos'
-                    : `Ver todas as ${historicoPagas.length} contas pagas`}
+                    : `Ver meses anteriores (${pagasPorMes.length - 3})`}
                 </button>
               )}
             </div>
