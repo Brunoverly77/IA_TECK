@@ -23,6 +23,7 @@ function Login() {
     setLoading(false)
 
     if (error) {
+      console.error('Erro ao enviar código:', error)
       setErro('Não deu pra enviar o código. Tente novamente.')
       return
     }
